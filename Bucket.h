@@ -15,6 +15,8 @@ public:
 
   bool setVals(char * key, char * data);
 
+  bool isEmpty();
+
   char * getKey() const {
     char * retval = new char[KEY_SIZE]; 
     return strcpy(retval, this->key);

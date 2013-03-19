@@ -13,6 +13,7 @@ public:
   int hash(char * key){
     return (int) *key % DEFAULT_SIZE;
   };
+  float capacity();
   
   static bool test();  
   

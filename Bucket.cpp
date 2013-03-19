@@ -17,6 +17,11 @@ bool Bucket::setVals(char * newkey, char * newdata) {
   }
 }
 
+bool Bucket::isEmpty(){
+  return (this->key=='\0' || strcmp(this->key,"")==0)
+    && (this->data=='\0' || strcmp(this->data,"")==0);
+}
+
 bool Bucket::test() {
   // Bucket basic functionality test suite
   // This will be called in a test file

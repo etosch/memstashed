@@ -19,7 +19,6 @@ int Stash::init() {
     for (int i=0; i< Stash::size; i++){
       Bucket * bp = new Bucket();
       Stash::stash[i] = bp;
-      //      delete bp;
     }
     Stash::initialized = 1;
   }
@@ -39,9 +38,9 @@ int Stash::set(char * key, char * val) {
   int index = Stash::hash(key);
   Bucket * b = stash[index];
   char * k9 = b->getKey();
-  if (k9 == key) //already set
+  if (strcmp(k9,key)==0) //already set
     return 1; 
-  else if (k9 == '\0') { // empty
+  else if (k9 == '\0' || strcmp(k9, "")==0) { // empty
     b->setVals(key, val);
     return 2;
   } else {
@@ -52,15 +51,28 @@ int Stash::set(char * key, char * val) {
   }
 }
 
+float Stash::capacity(){
+  //returns percent capacity
+  int num_full_buckets = 0;
+  for(int i; i<Stash::size; i++)
+    if (!(stash[i]->isEmpty()))
+      num_full_buckets += 1;
+  return (float)num_full_buckets/(float)Stash::size;
+}
+
 bool Stash::test() {
   printf("Stash::test\n");
   Stash *s = new Stash();
   printf("%d\n", s->init());
   if(s->init()){
-    printf("Fuck me.\n");
-    s->set("asdf","fdsa");
-    printf("Fuck you.\n");
-    printf("get:%s\n", s->get("asdf"));
+    printf("set:%d\t%0.4f\n", s->set("asdf","fdsa"), s->capacity());
+    //same key, but different val - still doesn't set:
+    printf("set:%d\t%0.4f\n", s->set("asdf","Fdsa"),  s->capacity());
+    printf("get:%s\t%0.4f\n", s->get("asdf"),  s->capacity());
+    printf("set:%d\t%0.4f\n", s->set("qwer","Rewq"),  s->capacity());
+    printf("set:%d\t%0.4f\n", s->set("1234","4321"),  s->capacity());
+    printf("get:%s\t%0.4f\n", s->get("asdf"),  s->capacity());
+    printf("set:%d\t%0.4f\n", s->set("ert","Tre"),  s->capacity());
   } else return false;
   return true;
 }

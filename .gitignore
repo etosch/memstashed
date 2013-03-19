@@ -1,4 +1,9 @@
 *.o
 *~
 *.dSYM
-#*.*#
+client
+libmemcached*
+memcached*
+python*
+sanity
+server
