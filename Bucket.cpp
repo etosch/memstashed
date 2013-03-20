@@ -26,7 +26,9 @@ bool Bucket::test() {
   // Bucket basic functionality test suite
   // This will be called in a test file
   // initialize a bucket
+  std::cout << "Bucket test" << std::endl;
   Bucket * b = new Bucket();
+  std::cout << "Empty?" << b->isEmpty();
   char * uninitKey = b->getKey();
   b->setVals("asdf","fdsa");
   // determine whether we're actually copying to new address space
