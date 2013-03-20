@@ -54,16 +54,18 @@ int Stash::set(char * key, char * val) {
 float Stash::capacity(){
   //returns percent capacity
   int num_full_buckets = 0;
-  for(int i; i<Stash::size; i++)
-    if (!(stash[i]->isEmpty()))
+  for(int i=0; i<Stash::size; i++)
+    if (not (stash[i]->isEmpty()))
       num_full_buckets += 1;
-  return (float)num_full_buckets/(float)Stash::size;
+  return float(num_full_buckets)/float(Stash::size);
 }
 
+
+
 bool Stash::test() {
-  printf("Stash::test\n");
+  printf("Stash test\n");
   Stash *s = new Stash();
-  printf("%d\n", s->init());
+  printf("stash size:%d\n", s->init());
   if(s->init()){
     printf("set:%d\t%0.4f\n", s->set("asdf","fdsa"), s->capacity());
     //same key, but different val - still doesn't set:
