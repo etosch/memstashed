@@ -13,6 +13,10 @@ stashtest:
 	$(CXX) $(CXXFLAGS) stash.o bucket.o sanity.o -o sanity 
 	./sanity
 
+main:
+	$(CXX) $(CXXFLAGS) memstashed.cpp -o memstashed
+	./memstashed -U 9384
+
 test: clean build #python
 	./server $(PORT) &
 	python testclient1.py &
