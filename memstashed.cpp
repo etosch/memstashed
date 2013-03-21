@@ -1,3 +1,11 @@
+// memcached defaults to 4 worker threads
+// use as much RAM as you can
+// each server should have roughly the same amount of RAM : goal is "cluster uniformity"
+// avoid swapping
+// do not over-allocate memory
+
+#include "Server.h"
+// includes simplesocket.h, pthread.h, sstream, iostream?
 #include <stdio.h>
 #include <string>
 
@@ -9,7 +17,7 @@ int main(int argc, char * argv[]){
   char delim = ':';
   char * ip_addr = "localhost";
   char * protocol="auto";
-  int size = megs(64), max_connections=1024, udp_port = 11211, tcp_port = 11211, warn=0, max_threads=4, verbose=0;
+  int size = megs(64), max_connections=1024, udp_port = 0, tcp_port = 11211, warn=0, max_threads=4, verbose=0;
   int memory_chunk_multiplier, default_slab_page, min_size;
   bool auto_free, daemon=false, stats=false, cas=true;
   printf("WARNINGS:\n");
@@ -41,6 +49,7 @@ int main(int argc, char * argv[]){
     } else if (match_flag("-U")){
       printwarn("UDP connection not implemented."); 
       udp_port = atoi(argv[j]);
+      tcp_port = 0;
     } else if (match_flag("-M")){
       auto_free = false;
     } else if (match_flag("-r")){
@@ -85,5 +94,7 @@ int main(int argc, char * argv[]){
     } else printwarn("UNRECOGNIZED ARGUMENT!");
   }
   if (not warn) printf("\tHuzzah! No startup warnings!\n");
-  return 0;
+  return Server::run(delim, ip_addr, protocol, size, max_connections, udp_port,
+	      tcp_port, max_threads, verbose, memory_chunk_multiplier,
+	      default_slab_page, min_size, auto_free, daemon, stats, cas);
 }

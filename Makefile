@@ -14,8 +14,11 @@ stashtest:
 	./sanity
 
 main:
-	$(CXX) $(CXXFLAGS) memstashed.cpp -o memstashed
-	./memstashed -U 9384
+	$(CXX) $(CXXFLAGS) memstashed.cpp Server.cpp simplesocket.cpp -o memstashed -lpthread
+	# $(CXX) $(CXXFLAGS) simplesocket.cpp -c -o simplesocket.o
+	# $(CXX) $(CXXFLAGS) Server.cpp -c -o server.o -lpthread
+	# $(CXX) $(CXXFLAGS) memstashed.cpp server.o simplesocket.o  -o memstashed
+	./memstashed -p 1234
 
 test: clean build #python
 	./server $(PORT) &
