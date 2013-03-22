@@ -9,15 +9,13 @@ stashtest:
 #	./sanity
 	$(CXX) $(CXXFLAGS) Bucket.cpp -c -o bucket.o
 	$(CXX) $(CXXFLAGS) Stash.cpp -c -o stash.o
+	$(CXX) $(CXXFLAGS) Parser.cpp -c -o parser.o
 	$(CXX) $(CXXFLAGS) sanity.cpp -c -o sanity.o 
-	$(CXX) $(CXXFLAGS) stash.o bucket.o sanity.o -o sanity 
+	$(CXX) $(CXXFLAGS) parser.o stash.o bucket.o sanity.o -o sanity 
 	./sanity
 
 main:
-	$(CXX) $(CXXFLAGS) memstashed.cpp Server.cpp simplesocket.cpp -o memstashed -lpthread
-	# $(CXX) $(CXXFLAGS) simplesocket.cpp -c -o simplesocket.o
-	# $(CXX) $(CXXFLAGS) Server.cpp -c -o server.o -lpthread
-	# $(CXX) $(CXXFLAGS) memstashed.cpp server.o simplesocket.o  -o memstashed
+	$(CXX) $(CXXFLAGS) memstashed.cpp Server.cpp simplesocket.cpp Parser.cpp -o memstashed -lpthread
 	./memstashed -p 1234
 
 test: clean build #python

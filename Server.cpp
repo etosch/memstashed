@@ -1,4 +1,6 @@
 #include "Server.h"
+#include "Parser.h"
+// Parser.h includes Cmd.h
 #include "simplesocket.h"
 #include <pthread.h>
 #include <sstream>
@@ -20,17 +22,27 @@ int Server::messageNumber () {
 }
 
 //so is void * a shortcut for having to write char * and returning '\0'?
-void * Server::serve (void * cv)
-{
+void * Server::serve (void * cv){
   // Just read exactly one string.
   auto * c = (simplesocket *) cv; 
-  char buffer[256];
+  // most messages are short
+  int bufsize = 512;
+  char buffer[bufsize];
   while (true) {
-    int nbytesRead = c->read (buffer, 256);
+    int nbytesRead = c->read (buffer, bufsize);
     if (nbytesRead == 0) {
+      cout << "No bytes read!" << endl;
       break;
     }
-    c->write(buffer, 256);
+    if ((int) buffer[bufsize-1] == 0) {
+      Cmd * c = Parser::parse(bufsize, buffer);
+      cout << "Command: " << Cmd::cmds[c->cmd] << endl;
+      c->exec();
+    } else {
+      printf("Messages greater than buffer size (%iB) not yet supported.", bufsize);
+      exit(1);
+    }
+    c->write(buffer, bufsize);
     cout << "[" << messageNumber() << "] " << buffer << endl;
   }
   delete c;
@@ -43,15 +55,9 @@ int Server::run (char delim, char * ip_addr, char * protocol,
 	 int max_threads, int verbose, int memory_chunk_multiplier,
 	 int default_slab_page, int min_size, bool auto_free, 
 	 bool daemon, bool stats, bool cas){
-//   if (argc < 2) {
-//     cerr << "Usage: " << argv[0] << " <port>" << endl;
-//     exit (-1);
-//   }
-//  int port;
-//  stringstream (argv[1]) >> port;
   serversocket * s = new serversocket ((bool)tcp_port?tcp_port:udp_port);
   cout << "Entering loop.\n" << endl;
-  while (true) {
+  while (messageNumber()<10) {
     // Create one thread per connection.
     auto * c = s->accept();
     pthread_t * t = new pthread_t;

@@ -9,4 +9,5 @@ class Server {
 		  int max_threads, int verbose, int memory_chunk_multiplier,
 		  int default_slab_page, int min_size, bool auto_free, 
 		  bool daemon, bool stats, bool cas);
+  static bool test();
 };
