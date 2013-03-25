@@ -48,109 +48,130 @@ auto read_fn = [] (int &i, char bufsize, char buffer[]){
   };
 };
 
-auto add_node = [] (Cmd::cmd_node &initial_node) {
-  return [&] (char s[]){
-    static Cmd::cmd_node * last_ref = &initial_node;
-    last_ref->cmd = string(s);
-    last_ref->next = new Cmd::cmd_node();
-    last_ref = last_ref->next;
-  };
-};
-
 Cmd * Parser::parse_storage_cmd(Cmd * c, int bufsize, char buffer[]){
-  int i = strlen(Cmd::cmds[c->cmd]); int num_args;
+  int i = strlen(Cmd::cmds[c->cmd]); 
   char key[KEY_SIZE+1]; char flags[6]; char exptime[11]; char bytes[11]; 
-  char casunique[20]; char noreply[8];
+  char casunique[21]; char noreply[8];
   auto advance = advance_fn(i, bufsize, buffer);
   auto read = read_fn(i, bufsize, buffer);
-  advance(); read(key, KEY_SIZE, "Key too big!");
-  advance(); read(flags, 5, "32-bit flags not supported.");
-  advance(); read(exptime, 10, "System time must fit in an int.");
-  advance(); read(bytes, 10, "Size of data block must fit in an int.");
+  advance()?read(key, KEY_SIZE, "Key too big!"):cmd_parse_err(c);
+  advance()?read(flags, 5, "32-bit flags not supported."):cmd_parse_err(c);
+  advance()?read(exptime, 10, "System time must fit in an int."):cmd_parse_err(c);
+  advance()?read(bytes, 10, "Size of data block must fit in an int."):cmd_parse_err(c);
   if (c->cmd == 2){
-    advance(); read(casunique, 19, "Unique value must fit in a 64-bit int.");}
+    advance()?read(casunique, 19, "Unique value must fit in a 64-bit int."):cmd_parse_err(c);}
   if ((int)buffer[i]>32) { 
-    advance(); read(noreply, 7, "To use noreply optional argument, type \"noreply\"");}
-  num_args = 4;
-  auto add = add_node(c->cmd_args);
-  add(key); add(flags); add(exptime); add(bytes);
-  if (c->cmd == 2) { add(casunique); num_args++; } 
-  c->num_args=num_args;
+    advance()?read(noreply, 7, "To use noreply optional argument, type \"noreply\""):cmd_parse_err(c);}
+  c->add(key); c->add(flags); c->add(exptime); c->add(bytes);
+  if (c->cmd == 2) c->add(casunique);
   return c;
 }
 
 Cmd * Parser::parse_retrieval_cmd(Cmd * c, int bufsize, char buffer[]){
-  int i = strlen(Cmd::cmds[c->cmd]);
-  int num_args = 0;
-  Cmd::cmd_node *cmdp = &c->cmd_args;
-  auto advance = [&] () {
-    do {
-      if (buffer[i]=='\r' && buffer[i+1]=='\n'){
-  	if (num_args == 0) {
-  	  cout << Cmd::cmds[c->cmd] << " requires at least one key." << endl;
-  	  exit(-1);
-  	} else {
-  	  c->num_args=num_args;
-  	  return 0;
-  	}
-      } else i++;
-    } while ( i < bufsize && (int)buffer[i]<33 );
-    return 1;
-  };
-  auto read_key = [&] () {
-    char key[KEY_SIZE]; int j;
-    for ( j = 0 ; (int)buffer[i]>32 ; j++, i++ ) {
-      if (j==KEY_SIZE+1) { cout << "Key size too big!" << endl; exit(-1); }
-      key[j]=buffer[i];
-    }
-    key[j]='\0';
-    num_args++;
-    cmdp->cmd = string(key);
-    cmdp->next = new Cmd::cmd_node();
-    cmdp = cmdp->next;
-  };
-  while (advance()) read_key();
+  int i = strlen(Cmd::cmds[c->cmd]); 
+  auto advance = advance_fn(i, bufsize, buffer);
+  auto read_key = read_fn(i, bufsize, buffer);
+  while (advance()) {
+    char key[KEY_SIZE+1];
+    read_key(key, KEY_SIZE, "Key exceeds size of 250B");
+    c->add(key);
+  }
   return c;
 }
 
 Cmd * Parser::parse_deletion_cmd(Cmd * c, int bufsize, char buffer[]){
-  c->num_args=0;
-  
+  int i = strlen(Cmd::cmds[c->cmd]); 
+  char key[KEY_SIZE+1]; char noreply[8];
+  auto advance = advance_fn(i, bufsize, buffer);
+  auto read = read_fn(i, bufsize, buffer);
+  advance()?read(key, KEY_SIZE, "Key exceeds size of 250B"):cmd_parse_err(c);
+  c->add(key);
+  if (advance()) {
+    read(noreply, 7, "To use noreply optional argument, type \"noreply\"");
+    c->add(noreply);
+  }
   return c;
 }
+
 Cmd * Parser::parse_cr_cmd(Cmd * c, int bufsize, char buffer[]){
-  c->num_args=0;
-  // c->cmd_arg[0]="0";
+  int i = strlen(Cmd::cmds[c->cmd]); 
+  char key[KEY_SIZE+1]; char value[21]; char noreply[8];
+  auto advance = advance_fn(i, bufsize, buffer);
+  auto read = read_fn(i, bufsize, buffer);
+  advance()?read(key, KEY_SIZE, "Key exceeds size of 250B"):cmd_parse_err(c);
+  c->add(key);
+  advance()?read(value, 20, "Value should be the decimal rep. of a 64-bit unsigned int."):cmd_parse_err(c);
+  c->add(value);
+  if (advance()) {
+    read(noreply, 7, "To use noreply optional argument, type \"noreply\"");
+    c->add(noreply);
+  }
   return c;
 }
 Cmd * Parser::parse_touch_cmd(Cmd * c, int bufsize, char buffer[]){
-  c->num_args=0;
-  // c->cmd_arg[0]="0";
+  int i = strlen(Cmd::cmds[c->cmd]); 
+  char key[KEY_SIZE+1]; char exptime[11]; char noreply[8];
+  auto advance = advance_fn(i, bufsize, buffer);
+  auto read = read_fn(i, bufsize, buffer);
+  advance()?read(key, KEY_SIZE, "Key exceeds size of 250B"):cmd_parse_err(c);
+  c->add(key);
+  advance()?read(exptime, 10, "System time must fit in an int."):cmd_parse_err(c);
+  c->add(exptime);
+  if (advance()) {
+    read(noreply, 7, "To use noreply optional argument, type \"noreply\"");
+    c->add(noreply);
+  }
   return c;
 }
 Cmd * Parser::parse_slabs_cmd(Cmd * c, int bufsize, char buffer[]){
-  c->num_args=0;
-  // c->cmd_arg[0]="0";
-  return c;
+  int i = strlen(Cmd::cmds[c->cmd]); 
+  char slab_cmd[11];
+  auto advance = advance_fn(i, bufsize, buffer);
+  auto read = read_fn(i, bufsize, buffer);
+  advance()?read(slab_cmd, 10, ""):cmd_parse_err(c);
+  c->add(slab_cmd);
+  if (strcmp(slab_cmd, "reassign")==0){
+    char src[21]; char dest[21];
+    advance()?read(src, 20, "Slab src id number doesn't fit"):cmd_parse_err(c);
+    c->add(src);
+    advance()?read(dest, 20, "Slab dest id number doesn't fit"):cmd_parse_err(c);
+    c->add(dest);
+    return c;
+  }else if (strcmp(slab_cmd, "automove")==0){
+    char indicator[2];
+    advance()?read(indicator, 1, "Indicator should be a single value from 0,1,2"):cmd_parse_err(c);
+    c->add(indicator);
+    return c;
+  }    
+  cout << "Bad args to slabs command" << endl;
+  exit(-1);
 }
+
 Cmd * Parser::parse_stats_cmd(Cmd * c, int bufsize, char buffer[]){
-  c->num_args=0;
-  // c->cmd_arg[0]="0";
+  int i = strlen(Cmd::cmds[c->cmd]); 
+  auto advance = advance_fn(i, bufsize, buffer);
+  if (advance()){
+    cout << "WARNING: stats with args not implemented" << endl;
+  }
   return c;
 }
 Cmd * Parser::parse_flush_cmd(Cmd * c, int bufsize, char buffer[]){
-  c->num_args=0;
-  // c->cmd_arg[0]="0";
+  int i = strlen(Cmd::cmds[c->cmd]); 
+  auto advance = advance_fn(i, bufsize, buffer);
+  auto read = read_fn(i, bufsize, buffer);
+  if (advance()){
+    char optarg[21];
+    read(optarg, 20, "Something meaningful.");
+    c->add(optarg);
+  }
   return c;
 }
 Cmd * Parser::parse_singleton(Cmd * c, int bufsize, char buffer[]){
-  c->num_args=0;
-  // c->cmd_arg[0]="0";
   return c;
 }
 Cmd * Parser::parse_verbosity(Cmd * c, int bufsize, char buffer[]){
-  c->num_args=0;
-  // c->cmd_arg[0]="0";
+  cout << "Logging not implemented." <<endl;
+
   return c;
 }
 
@@ -191,22 +212,24 @@ int Cmd::exec(){
 }
 
 bool Parser::test(){
-  auto printtest = [] (char s[]) {
+ auto printtest = [] (char s[]) {
     Cmd * c = Parser::parse(512, s);
     int index = c->cmd;
-    int num_args = c->num_args;
-    Cmd::cmd_node this_cmd = c->cmd_args;
     const char * this_cmd_name = (index<0)?"not found":Cmd::cmds[index];
-    cout << "Command: " << this_cmd_name << "\tArgs(" << num_args << "): ";
-    for ( ; num_args > 0 ; num_args--){
-      cout << this_cmd.cmd  << "\t";
-      this_cmd=*this_cmd.next;
+    cout << "Command: " << this_cmd_name << "\tArgs(" << c->args.size() << "): ";
+    for (string s : c->args){
+      cout << s << "\t";
     }
     cout << endl;
     delete c;
   };
   printtest("add ;lkasjdf 123 3845706987 938475");
-  printtest("touch");
+  printtest("delete lkajsdhlfkajshlkjrhalkejrht\r\n");
+  printtest("incr lajksdhflajksl3i4h5p9384jlqihw4r;oiwe 34567876");
+  printtest("touch jio345ijo534jio354 97979797");
+  printtest("slabs reassign 34534 3453453");
+  printtest("slabs automove 1");
+  printtest("stats");
   printtest("flush_all\r\n");
   printtest("get\tstuff more_stuff\r\n");
   printtest("version\r\n");

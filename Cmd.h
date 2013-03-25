@@ -1,4 +1,7 @@
 #include <string>
+#include <vector>
+
+using namespace std;
 
 class Cmd{
  public:
@@ -6,11 +9,11 @@ class Cmd{
   static const char * cmds[num_cmds];
   static const int parse_types[num_cmds];
   int cmd;
-  int num_args;
-  struct cmd_node {
-    std::string cmd;
-    cmd_node * next;
-  } cmd_args;
+  vector<string> args;
+
+  void add(string s){
+    args.push_back(s);
+  }
 
   Cmd(int cmd){
     this->cmd=cmd;
