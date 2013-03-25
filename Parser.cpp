@@ -7,22 +7,23 @@
 #include "errors.h"
 #include <iostream>
 #include <functional>
+#define NUM_CMDS 18
 
 using namespace std;
 
-const char * Cmd::cmds[] = {"add","append","cas","decr","delete"
-			    ,"flush_all","get","gets","incr","prepend"
-			    ,"quit","replace","set","slabs","stats"
-			    ,"touch","verbosity", "version"};
+const char * Cmd::cmds[NUM_CMDS] = {"add","append","cas","decr","delete"
+				    ,"flush_all","get","gets","incr","prepend"
+				    ,"quit","replace","set","slabs","stats"
+				    ,"touch","verbosity", "version"};
 
-const int Cmd::parse_types[] = {1,1,1,4,3,8,2,2,4,1,9,1,1,6,7,5,10,9};
+const int Cmd::parse_types[NUM_CMDS] = {1,1,1,4,3,8,2,2,4,1,9,1,1,6,7,5,10,9};
 
 auto advance_fn = [] (int &i, int bufsize, char buffer[]) {
   return [&i,bufsize,buffer] ()->int {
     do{ 
-      if (!(int)buffer[i] || (buffer[i]=='\r' && buffer[i+1]=='\n')) {
+      if (!(int)buffer[i] || (buffer[i]=='\r' && buffer[i+1]=='\n')) 
 	return 0;
-      } else i++; 
+      else i++; 
     } while ( i<bufsize && (int)buffer[i]<33 );
     return 1;    
   };
@@ -41,26 +42,28 @@ auto read_fn = [] (int &i, char bufsize, char buffer[]){
   };
 };
 
-Cmd * Parser::parse_storage_cmd(Cmd * c, int bufsize, char buffer[]){
+void Parser::parse_storage_cmd(Cmd * c, int bufsize, char buffer[]){
   int i = strlen(Cmd::cmds[c->cmd]); 
   char key[KEY_SIZE+1]; char flags[6]; char exptime[11]; char bytes[11]; 
-  char casunique[21]; char noreply[8];
+  char casunique[21]; char noreply[8] = "";
   auto advance = advance_fn(i, bufsize, buffer);
   auto read = read_fn(i, bufsize, buffer);
-  advance()?read(key, KEY_SIZE, key_size_err):cmd_parse_err();
-  advance()?read(flags, 5, flag_size_err):cmd_parse_err();
-  advance()?read(exptime, 10, exptime_size_err):cmd_parse_err();
-  advance()?read(bytes, 10, datasize_size_err):cmd_parse_err();
+  if (advance()) read(key, KEY_SIZE, key_size_err); else cmd_parse_err();
+  if (advance()) read(flags, 5, flag_size_err); else cmd_parse_err();
+  if (advance()) read(exptime, 10, exptime_size_err); else cmd_parse_err();
+  if (advance()) read(bytes, 10, datasize_size_err); else cmd_parse_err();
   if (c->cmd == 2){
-    advance()?read(casunique, 19, casunique_size_err):cmd_parse_err();}
-  if ((int)buffer[i]>32) { 
-    advance()?read(noreply, 7, noreply_size_err):cmd_parse_err();}
+    if (advance()) 
+      read(casunique, 19, casunique_size_err); 
+    else cmd_parse_err();
+  }
+  if (advance()) read(noreply, 7, noreply_size_err); 
   c->add(key); c->add(flags); c->add(exptime); c->add(bytes);
   if (c->cmd == 2) c->add(casunique);
-  return c;
+  if (strcmp(noreply, "")) c->add(noreply);
 }
 
-Cmd * Parser::parse_retrieval_cmd(Cmd * c, int bufsize, char buffer[]){
+void Parser::parse_retrieval_cmd(Cmd * c, int bufsize, char buffer[]){
   int i = strlen(Cmd::cmds[c->cmd]); 
   auto advance = advance_fn(i, bufsize, buffer);
   auto read_key = read_fn(i, bufsize, buffer);
@@ -69,82 +72,80 @@ Cmd * Parser::parse_retrieval_cmd(Cmd * c, int bufsize, char buffer[]){
     read_key(key, KEY_SIZE, key_size_err);
     c->add(key);
   }
-  return c;
 }
 
-Cmd * Parser::parse_deletion_cmd(Cmd * c, int bufsize, char buffer[]){
+void Parser::parse_deletion_cmd(Cmd * c, int bufsize, char buffer[]){
   int i = strlen(Cmd::cmds[c->cmd]); 
   char key[KEY_SIZE+1]; char noreply[8];
   auto advance = advance_fn(i, bufsize, buffer);
   auto read = read_fn(i, bufsize, buffer);
-  advance()?read(key, KEY_SIZE, key_size_err):cmd_parse_err();
+  if (advance()) read(key, KEY_SIZE, key_size_err); else cmd_parse_err();
   c->add(key);
   if (advance()) {
     read(noreply, 7, noreply_size_err);
     c->add(noreply);
   }
-  return c;
 }
 
-Cmd * Parser::parse_cr_cmd(Cmd * c, int bufsize, char buffer[]){
+void Parser::parse_cr_cmd(Cmd * c, int bufsize, char buffer[]){
   int i = strlen(Cmd::cmds[c->cmd]); 
   char key[KEY_SIZE+1]; char value[21]; char noreply[8];
   auto advance = advance_fn(i, bufsize, buffer);
   auto read = read_fn(i, bufsize, buffer);
-  advance()?read(key, KEY_SIZE, key_size_err):cmd_parse_err();
+  if (advance()) read(key, KEY_SIZE, key_size_err); else cmd_parse_err();
   c->add(key);
-  advance()?read(value, 20, cr_size_err):cmd_parse_err();
+  if (advance()) read(value, 20, cr_size_err); else cmd_parse_err();
   c->add(value);
   if (advance()) {
     read(noreply, 7, noreply_size_err);
     c->add(noreply);
   }
-  return c;
 }
-Cmd * Parser::parse_touch_cmd(Cmd * c, int bufsize, char buffer[]){
+
+void Parser::parse_touch_cmd(Cmd * c, int bufsize, char buffer[]){
   int i = strlen(Cmd::cmds[c->cmd]); 
   char key[KEY_SIZE+1]; char exptime[11]; char noreply[8];
   auto advance = advance_fn(i, bufsize, buffer);
   auto read = read_fn(i, bufsize, buffer);
-  advance()?read(key, KEY_SIZE, key_size_err):cmd_parse_err();
+  if (advance()) read(key, KEY_SIZE, key_size_err); else cmd_parse_err();
   c->add(key);
-  advance()?read(exptime, 10, exptime_size_err):cmd_parse_err();
+  if (advance()) read(exptime, 10, exptime_size_err); else cmd_parse_err();
   c->add(exptime);
   if (advance()) {
     read(noreply, 7, noreply_size_err);
     c->add(noreply);
   }
-  return c;
 }
-Cmd * Parser::parse_slabs_cmd(Cmd * c, int bufsize, char buffer[]){
+
+void Parser::parse_slabs_cmd(Cmd * c, int bufsize, char buffer[]){
   int i = strlen(Cmd::cmds[c->cmd]); 
   char slab_cmd[11];
   auto advance = advance_fn(i, bufsize, buffer);
   auto read = read_fn(i, bufsize, buffer);
-  advance()?read(slab_cmd, 10, slab_size_err):cmd_parse_err();
+  if (advance()) read(slab_cmd, 10, slab_size_err); else cmd_parse_err();
   c->add(slab_cmd);
   if (strcmp(slab_cmd, "reassign")==0){
     char src[21]; char dest[21];
-    advance()?read(src, 20, slab_src_size_err):cmd_parse_err();
+    if (advance()) read(src, 20, slab_src_size_err); else cmd_parse_err();
     c->add(src);
-    advance()?read(dest, 20, slab_dest_size_err):cmd_parse_err();
+    if (advance()) read(dest, 20, slab_dest_size_err); else cmd_parse_err();
     c->add(dest);
-    return c;
   } else if (strcmp(slab_cmd, "automove")==0){
     char indicator[2];
-    advance()?read(indicator, 1, indicator_size_err):cmd_parse_err();
+    if (advance()) read(indicator, 1, indicator_size_err); else cmd_parse_err();
     c->add(indicator);
-    return c;
   } else unrecognized_slab_cmd();
+  cout << "This should never happen" <<endl;
+  exit(-1);
 }
 
-Cmd * Parser::parse_stats_cmd(Cmd * c, int bufsize, char buffer[]){
+void Parser::parse_stats_cmd(Cmd * c, int bufsize, char buffer[]){
   int i = strlen(Cmd::cmds[c->cmd]); 
   auto advance = advance_fn(i, bufsize, buffer);
   if (advance()) stats_args_err();
-  return c;
 }
-Cmd * Parser::parse_flush_cmd(Cmd * c, int bufsize, char buffer[]){
+
+void Parser::parse_flush_cmd(Cmd * c, int bufsize, char buffer[]){
   int i = strlen(Cmd::cmds[c->cmd]); 
   auto advance = advance_fn(i, bufsize, buffer);
   auto read = read_fn(i, bufsize, buffer);
@@ -153,20 +154,17 @@ Cmd * Parser::parse_flush_cmd(Cmd * c, int bufsize, char buffer[]){
     read(optarg, 20, flush_args_err);
     c->add(optarg);
   }
-  return c;
 }
 
-Cmd * Parser::parse_singleton(Cmd * c, int bufsize, char buffer[]){
-  return c;
+void Parser::parse_singleton(Cmd * c, int bufsize, char buffer[]){
 }
 
-Cmd * Parser::parse_verbosity(Cmd * c, int bufsize, char buffer[]){
+void Parser::parse_verbosity(Cmd * c, int bufsize, char buffer[]){
   verbosity_err();
-  return c;
 }
 
-Cmd * Parser::parse(int bufsize, char buffer[]){
-  Cmd * c = Parser::parse_cmd(bufsize, buffer);
+void Parser::parse(Cmd * c, int bufsize, char buffer[]){
+  //  Cmd * c = Parser::parse_cmd(bufsize, buffer);
   switch (Cmd::parse_types[c->cmd]){
   case 1: return Parser::parse_storage_cmd(c, bufsize, buffer);
   case 2: return Parser::parse_retrieval_cmd(c, bufsize, buffer);
@@ -180,29 +178,30 @@ Cmd * Parser::parse(int bufsize, char buffer[]){
   case 10: return Parser::parse_verbosity(c, bufsize, buffer);
   default: bad_cmd_err();
   }
+  cout << "This should never happen!" << endl;
+  exit(-1);
 }
 
 Cmd * Parser::parse_cmd(int bufsize, char buffer[]){
-  int cmd,i,j;
-  for(cmd=-1, i=0, j=0 ; j<Cmd::num_cmds && i<bufsize ; i++){
-    if (buffer[i] < 33) //commands are whitespace delimited
-      return new Cmd(cmd);
-    else if (buffer[i]!=Cmd::cmds[j][i]){
-      cmd=-1; j++; i=0; //not the "smart" way
-    } else // there is a match
-      cmd=j;
+  int i = 1; char cmd_str[10]; 
+  advance_fn(i, bufsize, buffer)();
+  for (int j = 0 ; j < i+1 ; j++)
+    cmd_str[j]=buffer[j];
+  cmd_str[i+1]='\0';
+  for (int j = 0 ; j < NUM_CMDS ; j++){
+    if (strcmp(cmd_str, Cmd::cmds[j])==0)
+      return new Cmd(j);
   }
-  // should never get here!
-  return new Cmd(-1);
+  bad_cmd_err();
+  cout << "Another thing that should never happen." << endl;
+  exit(-1);
 }
 
-int Cmd::exec(){
-  return 0;
-}
 
 bool Parser::test(){
  auto printtest = [] (char s[]) {
-    Cmd * c = Parser::parse(512, s);
+    Cmd * c = Parser::parse_cmd(512, s);
+    Parser::parse(c, 512, s);
     int index = c->cmd;
     const char * this_cmd_name = (index<0)?"not found":Cmd::cmds[index];
     cout << "Command: " << this_cmd_name << "\tArgs(" << c->args.size() << "): ";

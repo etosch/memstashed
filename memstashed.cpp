@@ -19,12 +19,15 @@ int main(int argc, char * argv[]){
   char * protocol="auto";
   int size = megs(64), max_connections=1024, udp_port = 0, tcp_port = 11211, warn=0, max_threads=4, verbose=0;
   int memory_chunk_multiplier, default_slab_page, min_size;
-  bool auto_free, daemon=false, stats=false, cas=true;
+  bool auto_free, daemon=false, stats=false, cas=true, debug=false;
   printf("WARNINGS:\n");
-  for (int i = 1, j=2; j<argc ; i+=2, j+=2){
+  for (int i = 1, j=2; i<argc ; i+=2, j+=2){
     auto match_flag = [&] (char * flag) { return strcmp(argv[i], flag)==0; };
     auto printwarn = [&] (char * msg) { printf("\t%s\t%s\t%s\n", argv[i], argv[j], msg); warn++; };
-    if (match_flag("-s")){
+    if (match_flag("--debug")){
+      debug=true;
+      i-=1; j-=1;
+  } else if (match_flag("-s")){
       printwarn("Assert that val is a path; Unix socket path to listen on (disables network support). Not implemented.");
     } else if (match_flag("-a")){
       printwarn("Permissions  (in  octal  format) for Unix socket created with -s option. Not implemented.");
@@ -94,7 +97,7 @@ int main(int argc, char * argv[]){
     } else printwarn("UNRECOGNIZED ARGUMENT!");
   }
   if (not warn) printf("\tHuzzah! No startup warnings!\n");
-  return Server::run(delim, ip_addr, protocol, size, max_connections, udp_port,
+  return Server::run(debug, delim, ip_addr, protocol, size, max_connections, udp_port,
 	      tcp_port, max_threads, verbose, memory_chunk_multiplier,
 	      default_slab_page, min_size, auto_free, daemon, stats, cas);
 }

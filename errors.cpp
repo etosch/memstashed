@@ -1,25 +1,27 @@
 #include <errors.h>
-
+#include <iostream>
 const char * errors[] = { 
-  "Messages greater than buffer size (%iB) not yet supported."
-  ,"Insufficient arguments to the %s command."
-  ,"Buffer too small (%i); increase size in Server.cpp?"
-  ,"Key too big!"
-  ,"32-bit flags not supported."
-  ,"System time must fit in an int."
-  ,"Size of data block must fit in an int."
-  ,"Unique value must fit in a 64-bit int."
-  ,"To use noreply optional argument, type \"noreply\""
-  ,"Slab type size error"
-  ,"Slab src id number doesn't fit"
-  ,"Slab dest id number doesn't fit"
-  ,"Indicator should be a single value from 0,1,2"
-  ,"Unrecognized slab command."
-  ,"WARNING: stats with args not implemented"
-  ,"flush_all args of the wrong size"
-  ,"WARNING: verbosity not implemented"
-  ,"Bad command."
-  ,"Value should be the decimal rep. of a 64-bit unsigned int."
+  "SERVER_ERROR Messages greater than buffer size (%iB) not yet supported." //0
+  ,"CLIENT_ERROR Insufficient arguments to the %s command." //1
+  ,"SERVER_ERROR Buffer too small (%i); increase size in Server.cpp?" //2
+  ,"CLIENT_ERROR Key too big!" //3
+  ,"CLIENT_ERROR 32-bit flags not supported." //4
+  ,"CLIENT_ERROR System time must fit in an int." //5
+  ,"CLIENT_ERROR Size of data block must fit in an int." //6
+  ,"CLIENT_ERROR Unique value must fit in a 64-bit int." //7
+  ,"CLIENT_ERROR To use noreply optional argument, type \"noreply\"" //8
+  ,"CLIENT_ERROR Slab type size error" //9
+  ,"CLIENT_ERROR Slab src id number doesn't fit" //10
+  ,"CLIENT_ERROR Slab dest id number doesn't fit" //11
+  ,"CLIENT_ERROR Indicator should be a single value from 0,1,2" //12
+  ,"CLIENT_ERROR Unrecognized slab command." //13
+  ,"WARNING: stats with args not implemented" //14
+  ,"CLIENT_ERROR flush_all args of the wrong size" //15
+  ,"WARNING: verbosity not implemented" //16
+  ,"ERROR" //17
+  ,"CLIENT_ERROR Value should be the decimal rep. of a 64-bit unsigned int." //18
+  , ""
+  , ""
 };
 
 void cmd_parse_err () { throw 1; }

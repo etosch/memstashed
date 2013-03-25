@@ -15,8 +15,8 @@ stashtest:
 	./sanity
 
 main:
-	$(CXX) $(CXXFLAGS) memstashed.cpp Server.cpp simplesocket.cpp Parser.cpp errors.cpp -o memstashed -lpthread
-	./memstashed -p 1234
+	$(CXX) $(CXXFLAGS) memstashed.cpp Server.cpp simplesocket.cpp Parser.cpp errors.cpp exec.cpp -o memstashed -lpthread
+	./memstashed -p 1234 --debug
 
 test: clean build #python
 	./server $(PORT) &

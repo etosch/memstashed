@@ -1,14 +1,15 @@
 #include "Server.h"
 #include "Parser.h"
-// Parser.h includes Cmd.h
+#include "Cmd.h"
 #include "errors.h"
 #include "simplesocket.h"
 #include <pthread.h>
 #include <sstream>
-
 #include <stdio.h>
 
 using namespace std;
+
+static int debug_mode;
 
 // from emery's code
 int Server::messageNumber () {
@@ -31,36 +32,41 @@ void * Server::serve (void * cv){
   int bufsize = 512;
   char buffer[bufsize];
   Cmd * c;
-  const char * err;
+  char err[250];
   while (true) {
     int nbytesRead = client->read (buffer, bufsize);
-    if (nbytesRead == 0) {
-      cout << "No bytes read!" << endl;
-      break;
+    if (strcmp(buffer, "\r\n")){
+      if (nbytesRead == 0) {
+	cout << "No bytes read!" << endl;
+	break;
+      }
+      try{
+	c = Parser::parse_cmd(bufsize, buffer);
+	Parser::parse(c, bufsize, buffer);
+	cout << "A:"<<c->cmd << endl;
+	c->exec_cmd();
+      } catch (int e) {
+	sprintf(err, errors[e], Cmd::cmds[c->cmd]); 
+	//      strcpy(err, errors[e]);
+	client->write(err, strlen(err));
+      }
+      if (debug_mode){
+	cout << c->cmd << Cmd::cmds[c->cmd] << endl;
+	client->write("\r\nmemstashed>", 13);
+      }
     }
-    try{
-      c = Parser::parse(bufsize, buffer);
-      cout << c->cmd << endl;
-      c->exec();
-    } catch (int e) {
-      err = errors[e];
-      client->write("ERROR:\t", 5);
-      client->write(err, strlen(err));
-      client->write("\r\n", 2);
-    }
-    //    client->write(buffer, bufsize);
-    client->write("Success!\r\n", 8);
   }
   delete c;
   return NULL;
 }
  
 // formerly main
-int Server::run (char delim, char * ip_addr, char * protocol, 
+int Server::run (bool debug, char delim, char * ip_addr, char * protocol, 
 	 int size, int max_connections, int udp_port, int tcp_port,
 	 int max_threads, int verbose, int memory_chunk_multiplier,
 	 int default_slab_page, int min_size, bool auto_free, 
 	 bool daemon, bool stats, bool cas){
+  debug_mode = debug;
   serversocket * s = new serversocket ((bool)tcp_port?tcp_port:udp_port);
   cout << "Entering loop.\n" << endl;
   while(true){
