@@ -1,3 +1,5 @@
+#ifndef __CMD_H__
+#define __CMD_H__
 #include <string>
 #include <vector>
 
@@ -25,3 +27,4 @@ class Cmd{
   int exec();
   static bool test();
 };
+#endif

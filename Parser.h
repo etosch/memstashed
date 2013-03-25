@@ -1,3 +1,6 @@
+#ifndef PARSER_H
+#define PARSER_H
+
 #include "Cmd.h"
 
 class Parser{
@@ -19,3 +22,5 @@ class Parser{
   static Cmd * parse(int bufsize, char buffer[]);
   static bool test();
 };
+
+#endif

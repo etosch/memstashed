@@ -1,10 +1,12 @@
 #include "Server.h"
 #include "Parser.h"
 // Parser.h includes Cmd.h
+#include "errors.h"
 #include "simplesocket.h"
 #include <pthread.h>
 #include <sstream>
-#include <iostream>
+
+#include <stdio.h>
 
 using namespace std;
 
@@ -24,26 +26,30 @@ int Server::messageNumber () {
 //so is void * a shortcut for having to write char * and returning '\0'?
 void * Server::serve (void * cv){
   // Just read exactly one string.
-  auto * c = (simplesocket *) cv; 
+  auto * client = (simplesocket *) cv; 
   // most messages are short
   int bufsize = 512;
   char buffer[bufsize];
+  Cmd * c;
+  const char * err;
   while (true) {
-    int nbytesRead = c->read (buffer, bufsize);
+    int nbytesRead = client->read (buffer, bufsize);
     if (nbytesRead == 0) {
       cout << "No bytes read!" << endl;
       break;
     }
-    if ((int) buffer[bufsize-1] == 0) {
-      Cmd * c = Parser::parse(bufsize, buffer);
-      cout << "Command: " << Cmd::cmds[c->cmd] << endl;
+    try{
+      c = Parser::parse(bufsize, buffer);
+      cout << c->cmd << endl;
       c->exec();
-    } else {
-      printf("Messages greater than buffer size (%iB) not yet supported.", bufsize);
-      exit(1);
+    } catch (int e) {
+      err = errors[e];
+      client->write("ERROR:\t", 5);
+      client->write(err, strlen(err));
+      client->write("\r\n", 2);
     }
-    c->write(buffer, bufsize);
-    cout << "[" << messageNumber() << "] " << buffer << endl;
+    //    client->write(buffer, bufsize);
+    client->write("Success!\r\n", 8);
   }
   delete c;
   return NULL;
@@ -57,7 +63,7 @@ int Server::run (char delim, char * ip_addr, char * protocol,
 	 bool daemon, bool stats, bool cas){
   serversocket * s = new serversocket ((bool)tcp_port?tcp_port:udp_port);
   cout << "Entering loop.\n" << endl;
-  while (messageNumber()<10) {
+  while(true){
     // Create one thread per connection.
     auto * c = s->accept();
     pthread_t * t = new pthread_t;
