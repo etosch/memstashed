@@ -29,7 +29,7 @@ auto advance_fn = [] (int &i, int bufsize, char buffer[]) {
   };
 };
 
-auto read_fn = [] (int &i, char bufsize, char buffer[]){
+auto read_fn = [] (int &i, int bufsize, char buffer[]){
   return [&i,bufsize,buffer] (char target[], int bound, void (*err_fn)()) -> void{
     int j = 0;
     for( ; (int)buffer[i]>32 ; j++, i++){
@@ -126,17 +126,21 @@ void Parser::parse_slabs_cmd(Cmd * c, int bufsize, char buffer[]){
   c->add(slab_cmd);
   if (strcmp(slab_cmd, "reassign")==0){
     char src[21]; char dest[21];
-    if (advance()) read(src, 20, slab_src_size_err); else cmd_parse_err();
-    c->add(src);
-    if (advance()) read(dest, 20, slab_dest_size_err); else cmd_parse_err();
-    c->add(dest);
+    if (advance()){
+      read(src, 20, slab_src_size_err); 
+      c->add(src);
+    } else cmd_parse_err();
+    if (advance()) {
+      read(dest, 20, slab_dest_size_err); 
+      c->add(dest);
+    } else cmd_parse_err();
   } else if (strcmp(slab_cmd, "automove")==0){
     char indicator[2];
-    if (advance()) read(indicator, 1, indicator_size_err); else cmd_parse_err();
-    c->add(indicator);
+    if (advance()) {
+      read(indicator, 1, indicator_size_err); 
+      c->add(indicator);
+    } else cmd_parse_err();
   } else unrecognized_slab_cmd();
-  cout << "This should never happen" <<endl;
-  exit(-1);
 }
 
 void Parser::parse_stats_cmd(Cmd * c, int bufsize, char buffer[]){
@@ -183,17 +187,14 @@ void Parser::parse(Cmd * c, int bufsize, char buffer[]){
 }
 
 Cmd * Parser::parse_cmd(int bufsize, char buffer[]){
-  int i = 1; char cmd_str[10]; 
-  advance_fn(i, bufsize, buffer)();
-  for (int j = 0 ; j < i+1 ; j++)
-    cmd_str[j]=buffer[j];
-  cmd_str[i+1]='\0';
-  for (int j = 0 ; j < NUM_CMDS ; j++){
+  int i = 0; char cmd_str[10]; 
+  read_fn(i,bufsize,buffer)(cmd_str,9,bad_cmd_err);
+  for (int j = 0; j < NUM_CMDS ; j++) {
     if (strcmp(cmd_str, Cmd::cmds[j])==0)
       return new Cmd(j);
   }
   bad_cmd_err();
-  cout << "Another thing that should never happen." << endl;
+  cout << "Danger Will Robinson! You should never get here." <<endl;
   exit(-1);
 }
 
@@ -201,8 +202,9 @@ Cmd * Parser::parse_cmd(int bufsize, char buffer[]){
 bool Parser::test(){
  auto printtest = [] (char s[]) {
     Cmd * c = Parser::parse_cmd(512, s);
-    Parser::parse(c, 512, s);
     int index = c->cmd;
+    cout << "cmd#:"<<index;
+    Parser::parse(c, 512, s);
     const char * this_cmd_name = (index<0)?"not found":Cmd::cmds[index];
     cout << "Command: " << this_cmd_name << "\tArgs(" << c->args.size() << "): ";
     for (string s : c->args){

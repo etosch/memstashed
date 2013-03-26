@@ -42,8 +42,8 @@ void * Server::serve (void * cv){
       }
       try{
 	c = Parser::parse_cmd(bufsize, buffer);
+	cout << "cmd#:"<<c->cmd<<endl;
 	Parser::parse(c, bufsize, buffer);
-	cout << "A:"<<c->cmd << endl;
 	c->exec_cmd();
       } catch (int e) {
 	sprintf(err, errors[e], Cmd::cmds[c->cmd]); 
