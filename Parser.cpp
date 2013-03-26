@@ -1,7 +1,5 @@
 // ugh, lexing. only doing this because bison is apparently only for c/c++ gurus
 // protocol can be found here : https://github.com/memcached/memcached/blob/master/doc/protocol.txt
-// map for commands 
-// 
 #include "Parser.h"
 #include "Bucket.h"
 #include "errors.h"
@@ -58,7 +56,7 @@ void Parser::parse_storage_cmd(Cmd * c, int bufsize, char buffer[]){
     else cmd_parse_err();
   }
   if (advance()) read(noreply, 7, noreply_size_err); 
-  c->add(key); c->add(flags); c->add(exptime); c->add(bytes);
+  c->add(key); c->add(flags); c->add(exptime); c->blocksize=atoi(bytes);
   if (c->cmd == 2) c->add(casunique);
   if (strcmp(noreply, "")) c->add(noreply);
 }

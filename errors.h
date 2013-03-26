@@ -1,7 +1,6 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
-#include "Cmd.h"
 #include <vector>
 #include <string>
 
@@ -24,5 +23,6 @@ void flush_args_err();
 void verbosity_err();
 void bad_cmd_err();
 void cr_size_err();
+void bucket_lock_err();
 
 #endif

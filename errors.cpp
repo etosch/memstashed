@@ -1,5 +1,6 @@
 #include <errors.h>
 #include <iostream>
+
 const char * errors[] = { 
   "SERVER_ERROR Messages greater than buffer size (%iB) not yet supported." //0
   ,"CLIENT_ERROR Insufficient arguments to the %s command." //1
@@ -20,7 +21,7 @@ const char * errors[] = {
   ,"WARNING: verbosity not implemented" //16
   ,"ERROR" //17
   ,"CLIENT_ERROR Value should be the decimal rep. of a 64-bit unsigned int." //18
-  , ""
+  , "Problem initializing pthread_mutex_init" //19
   , ""
 };
 
@@ -42,3 +43,4 @@ void flush_args_err() { throw 15; }
 void verbosity_err() { throw 16; }
 void bad_cmd_err() { throw 17; }
 void cr_size_err() { throw 18; }
+void bucket_lock_err() { throw 19; }

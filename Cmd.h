@@ -1,5 +1,7 @@
 #ifndef __CMD_H__
 #define __CMD_H__
+
+#include "Stash.h"
 #include <string>
 #include <vector>
 
@@ -11,11 +13,25 @@ class Cmd{
   static const char * cmds[num_cmds];
   static const int parse_types[num_cmds];
   int cmd;
+  int blocksize;
   vector<string> args;
   void add(string s){ args.push_back(s); }
   Cmd(int cmd){ this->cmd=cmd; }
   ~Cmd(){ }
-  int exec_storage_cmd();
+  int exec_cmd(char * buffer, Stash * s);
+
+ private:
+  int exec_add(const char * key, uint16_t flags, int exptime
+	       , bool noreply, char * data_block, Stash * s);
+  int exec_append(const char * key, uint16_t flags, int exptime
+		  , bool noreply, char * data_block, Stash * s);
+  int exec_cas(const char * key, uint16_t flags, int exptime
+	       , uint64_t casunique,bool noreply, char * data_block, Stash * s);
+  int exec_prepend(const char * key, uint16_t flags, int exptime
+		   , bool noreply, char * data_block, Stash * s);
+  int exec_replace(const char * key, uint16_t flags, int exptime
+		   , bool noreply, char * data_block, Stash * s);
+  int exec_storage_cmd(char * buffer, Stash * s);
   int exec_retrieval_cmd();
   int exec_deletion_cmd();
   int exec_cr_cmd();
@@ -25,7 +41,6 @@ class Cmd{
   int exec_flush_cmd();
   int exec_singleton();
   int exec_verbosity();
-  int exec_cmd();
   static bool test();
 };
 #endif

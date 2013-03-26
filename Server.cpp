@@ -1,4 +1,5 @@
 #include "Server.h"
+#include "Stash.h"
 #include "Parser.h"
 #include "Cmd.h"
 #include "errors.h"
@@ -9,7 +10,8 @@
 
 using namespace std;
 
-static int debug_mode;
+static bool debug_mode;
+static Stash * stash = new Stash();
 
 // from emery's code
 int Server::messageNumber () {
@@ -24,30 +26,32 @@ int Server::messageNumber () {
   return v;
 }
 
-//so is void * a shortcut for having to write char * and returning '\0'?
 void * Server::serve (void * cv){
   // Just read exactly one string.
   auto * client = (simplesocket *) cv; 
   // most messages are short
-  int bufsize = 512;
-  char buffer[bufsize];
+  int cmd_bufsize = 512;
+  char cmd_buffer[cmd_bufsize];
   Cmd * c;
   char err[250];
   while (true) {
-    int nbytesRead = client->read (buffer, bufsize);
-    if (strcmp(buffer, "\r\n")){
+    int nbytesRead = client->read (cmd_buffer,cmd_bufsize);
+    if (strcmp(cmd_buffer, "\r\n")){
       if (nbytesRead == 0) {
 	cout << "No bytes read!" << endl;
 	break;
       }
       try{
-	c = Parser::parse_cmd(bufsize, buffer);
-	cout << "cmd#:"<<c->cmd<<endl;
-	Parser::parse(c, bufsize, buffer);
-	c->exec_cmd();
+	c = Parser::parse_cmd(cmd_bufsize, cmd_buffer);
+	Parser::parse(c, cmd_bufsize, cmd_buffer);
+	if (Cmd::parse_types[c->cmd]==1){
+	  int data_bufsize = c->blocksize;
+	  char data_buffer[data_bufsize];
+	  client->read(data_buffer, data_bufsize);
+	  c->exec_cmd(data_buffer, stash);
+	}
       } catch (int e) {
 	sprintf(err, errors[e], Cmd::cmds[c->cmd]); 
-	//      strcpy(err, errors[e]);
 	client->write(err, strlen(err));
       }
       if (debug_mode){
@@ -68,6 +72,7 @@ int Server::run (bool debug, char delim, char * ip_addr, char * protocol,
 	 bool daemon, bool stats, bool cas){
   debug_mode = debug;
   serversocket * s = new serversocket ((bool)tcp_port?tcp_port:udp_port);
+  stash->init();
   cout << "Entering loop.\n" << endl;
   while(true){
     // Create one thread per connection.
