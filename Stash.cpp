@@ -12,7 +12,12 @@
 int Stash::initialized = 0;
 Bucket *Stash::stash[];
 pthread_mutex_t Stash::uidLock = PTHREAD_MUTEX_INITIALIZER;
-uint64_t Stash::uid = 0;
+int Stash::total_items_stored = 0;
+int Stash::cmd_get = 0;
+int Stash::get_hits = 0;
+int Stash::cmd_set = 0;
+int Stash::set_hits = 0;
+uint64_t Stash::uid = -1;
 
 // set array size
 int Stash::init() {
@@ -28,15 +33,35 @@ int Stash::init() {
   return Stash::size;
 }
 
+uint16_t Stash::getFlags(const char * key) {
+  if (this->keyExists(key)){
+    Bucket * b = this->getBucket(key);
+    return b->getFlags(key);
+  } else throw NOT_FOUND;
+}
+
 Bucket * Stash::getBucket(const char * key){
   int index = Stash::hash(key);
   return this->stash[index];
 }
 
+int Stash::del(const char * key){
+  if (this->keyExists(key)) {
+    int index = Stash::hash(key);
+    Bucket * bp = stash[index];
+    this->stash[index] = new Bucket();
+    delete bp;
+    return DELETED;
+  } else return NOT_FOUND;
+}
+
+
 const char * Stash::get(const char * key) {
   // hashing done outside
+  Stash::cmd_get++;
   Bucket * b  = getBucket(key);
   if (strcmp(b->getKey(), key)==0){
+    Stash::get_hits++;
     return b->getData();
   } else throw NOT_FOUND;
 }
@@ -45,26 +70,35 @@ int Stash::set(const char * key, char * val, int size, uint16_t flags
 	       , int exptime, int append = false) {
   Bucket * b = getBucket(key);
   char * k9 = b->getKey();
+  Stash::cmd_set++;
   if (strcmp(k9,key)==0 && not append) //already set
     return NOT_STORED; 
   else if (k9 == '\0' || strcmp(k9, "")==0) { // empty
     b->setVals(key, val, size, flags, exptime, Stash::newUid());
+    total_items_stored++;
+    set_hits++;
     return STORED;
   } else {
     //evict someone
     // just replace for now
     b->setVals(key, val, size, flags, exptime, Stash::newUid());
+    total_items_stored++;
+    set_hits++;
     return STORED;
   }
 }
 
-float Stash::capacity(){
-  //returns percent capacity
+int Stash::current_items_stored(){
   int num_full_buckets = 0;
   for(int i=0; i<Stash::size; i++)
     if (not (stash[i]->isEmpty()))
       num_full_buckets += 1;
-  return float(num_full_buckets)/float(Stash::size);
+  return num_full_buckets;
+}
+
+float Stash::capacity(){
+  //returns percent capacity
+  return float(Stash::current_items_stored())/float(Stash::size);
 }
 
 uint64_t Stash::newUid(){
@@ -77,6 +111,14 @@ uint64_t Stash::newUid(){
 
 int Stash::getUid(const char * key){
   return Stash::getBucket(key)->bucket_uid;
+}
+
+int Stash::replaceExptime(const char * key, int exptime){
+  if (this->keyExists(key)){
+    Bucket * b = Stash::getBucket(key);
+    b->replaceExptime(key, exptime);
+    return TOUCHED;
+  } else return NOT_FOUND;
 }
 
 bool Stash::keyExists(const char * key){

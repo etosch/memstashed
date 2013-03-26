@@ -2,6 +2,7 @@
 #define __CMD_H__
 
 #include "Stash.h"
+#include "Packet.h"
 #include <string>
 #include <vector>
 
@@ -18,29 +19,29 @@ class Cmd{
   void add(string s){ args.push_back(s); }
   Cmd(int cmd){ this->cmd=cmd; }
   ~Cmd(){ }
-  int exec_cmd(char * buffer, Stash * s);
+  Packet * exec_cmd(char * buffer, Stash * s);
 
  private:
-  int exec_add(const char * key, uint16_t flags, int exptime
-	       , bool noreply, char * data_block, Stash * s);
-  int exec_append(const char * key, uint16_t flags, int exptime
-		  , bool noreply, char * data_block, Stash * s);
-  int exec_cas(const char * key, uint16_t flags, int exptime
-	       , uint64_t casunique,bool noreply, char * data_block, Stash * s);
-  int exec_prepend(const char * key, uint16_t flags, int exptime
-		   , bool noreply, char * data_block, Stash * s);
-  int exec_replace(const char * key, uint16_t flags, int exptime
-		   , bool noreply, char * data_block, Stash * s);
-  int exec_storage_cmd(char * buffer, Stash * s);
-  int exec_retrieval_cmd();
-  int exec_deletion_cmd();
-  int exec_cr_cmd();
-  int exec_touch_cmd();
-  int exec_slabs_cmd();
-  int exec_stats_cmd();
-  int exec_flush_cmd();
-  int exec_singleton();
-  int exec_verbosity();
+  Packet * exec_add(const char * key, uint16_t flags, int exptime
+		    , bool noreply, char * data_block, Stash * s);
+  Packet * exec_append(const char * key, uint16_t flags, int exptime
+		       , bool noreply, char * data_block, Stash * s);
+  Packet * exec_cas(const char * key, uint16_t flags, int exptime
+		    , uint64_t casunique,bool noreply, char * data_block, Stash * s);
+  Packet * exec_prepend(const char * key, uint16_t flags, int exptime
+			, bool noreply, char * data_block, Stash * s);
+  Packet * exec_replace(const char * key, uint16_t flags, int exptime
+			, bool noreply, char * data_block, Stash * s);
+  Packet * exec_storage_cmd(char * buffer, Stash * s);
+  Packet * exec_retrieval_cmd(Stash * s);
+  Packet * exec_deletion_cmd(Stash * s);
+  Packet * exec_cr_cmd(Stash * s);
+  Packet * exec_touch_cmd(Stash * s);
+  Packet * exec_slabs_cmd(Stash * s);
+  Packet * exec_stats_cmd(Stash * s);
+  Packet * exec_flush_cmd(Stash * s);
+  Packet * exec_singleton(Stash * s);
+  Packet * exec_verbosity(Stash * s);
   static bool test();
 };
 #endif

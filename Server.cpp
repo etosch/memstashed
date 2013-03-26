@@ -1,3 +1,4 @@
+#include "Packet.h"
 #include "Server.h"
 #include "Stash.h"
 #include "Parser.h"
@@ -48,7 +49,8 @@ void * Server::serve (void * cv){
 	  int data_bufsize = c->blocksize;
 	  char data_buffer[data_bufsize];
 	  client->read(data_buffer, data_bufsize);
-	  c->exec_cmd(data_buffer, stash);
+	 Packet * p = c->exec_cmd(data_buffer, stash);
+	 p->transmission_handler(client);
 	}
       } catch (int e) {
 	sprintf(err, errors[e], Cmd::cmds[c->cmd]); 

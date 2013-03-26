@@ -21,12 +21,18 @@ class Stash {
   float capacity();
   int getUid(const char * key);
   int getDataSize(const char * key);
+  uint16_t getFlags(const char * key);
   bool keyExists(const char * key);
   static bool test();  
   static pthread_mutex_t uidLock;
+  int del(const char * key);
+  int replaceExptime(const char * key, int exptime);
+  int current_items_stored();
   
  private:
-  int y =0;
+  static int total_items_stored;
+  static int cmd_get; static int get_hits;
+  static int cmd_set; static int set_hits;
   static int initialized;
   const static int size = DEFAULT_SIZE;
   static Bucket *stash[DEFAULT_SIZE];

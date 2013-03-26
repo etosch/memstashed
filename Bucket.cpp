@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <cassert>
+#include "replies.h"
 
 int Bucket::bucket_lock(){
   return pthread_mutex_lock(&this->lock);
@@ -28,6 +29,23 @@ bool Bucket::setVals(const char * newkey, char * newdata, int data_size
     return true;
   }
   this->bucket_unlock();
+}
+
+uint16_t Bucket::getFlags(const char * key){
+  if (strcmp(key, this->key)==0)
+    return this->flags;
+  else throw NOT_FOUND;
+}
+
+bool Bucket::replaceExptime(const char * key, int exptime){
+  bool outcome= false;
+  this->bucket_lock();
+  if (strcmp(this->key, key)==0){
+    this->exptime=exptime;
+    outcome = true;
+  }
+  this->bucket_unlock();
+  return outcome;
 }
 
 bool Bucket::isEmpty(){

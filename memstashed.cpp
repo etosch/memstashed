@@ -8,6 +8,7 @@
 // includes simplesocket.h, pthread.h, sstream, iostream?
 #include <stdio.h>
 #include <string>
+#include <cstdlib>
 
 int megs(int n){
   return 1024*1024*n;

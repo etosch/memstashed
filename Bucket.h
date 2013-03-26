@@ -29,6 +29,8 @@ public:
   bool setVals(const char * key, char * data, int data_size
 	       , uint16_t flags, int exptime, int uid);
 
+  bool replaceExptime(const char * key, int exptime);
+
   bool isEmpty();
 
   char * getKey() const {
@@ -40,6 +42,8 @@ public:
     char * retval = new char[VAL_SIZE];
     return strcpy(retval, this->data);
   }
+
+  uint16_t getFlags(const char * key);
 
   static bool test();
   int bucket_uid = 0;

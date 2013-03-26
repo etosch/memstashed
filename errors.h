@@ -24,5 +24,6 @@ void verbosity_err();
 void bad_cmd_err();
 void cr_size_err();
 void bucket_lock_err();
-
+void not_implemented_err();
+void fuck_you();
 #endif

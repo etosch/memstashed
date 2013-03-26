@@ -2,7 +2,7 @@
 #include <iostream>
 
 const char * errors[] = { 
-  "SERVER_ERROR Messages greater than buffer size (%iB) not yet supported." //0
+  "SERVER_ERROR." //0
   ,"CLIENT_ERROR Insufficient arguments to the %s command." //1
   ,"SERVER_ERROR Buffer too small (%i); increase size in Server.cpp?" //2
   ,"CLIENT_ERROR Key too big!" //3
@@ -22,9 +22,11 @@ const char * errors[] = {
   ,"ERROR" //17
   ,"CLIENT_ERROR Value should be the decimal rep. of a 64-bit unsigned int." //18
   , "Problem initializing pthread_mutex_init" //19
-  , ""
+  , "incr/decr instructions not implemented." //20
+  , "fuck you." //21
 };
 
+void server_error() { throw 0; }
 void cmd_parse_err () { throw 1; }
 void buffer_size_err() { throw 2; }
 void key_size_err() { throw 3; }
@@ -44,3 +46,5 @@ void verbosity_err() { throw 16; }
 void bad_cmd_err() { throw 17; }
 void cr_size_err() { throw 18; }
 void bucket_lock_err() { throw 19; }
+void not_implemented_err() { throw 20; }
+void fuck_you() { throw 21; }
