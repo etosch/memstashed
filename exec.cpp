@@ -7,12 +7,14 @@
 #include "simplesocket.h"
 #include "Packet.h"
 #include <stdlib.h>
+// this macro brought to you by john "jazz" foley
+#define show(var) std::cout << __FILE__ ":"<<__LINE__<<":" #var << " = " << var << std::endl; 
 
 using namespace std;
 
 Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
   const char * key = this->args[0].c_str();
-  uint16_t flags = atoi(this->args[1].c_str()); //stoi not working - may want to change storage?
+  uint16_t flags = atoi(this->args[1].c_str()); 
   int exptime = atol(this->args[2].c_str());
   uint64_t casunique; 
   bool noreply = this->args.back()=="noreply";
@@ -21,6 +23,7 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
   switch (this->cmd){
   case 0 : { //add
     reply = s->set(key, data_block, this->blocksize, flags, exptime, false);
+    break;
   }
   case 1 : { //append
     int blocksize = this->blocksize;
@@ -32,6 +35,7 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
     for (int i = 0 ; i < blocksize ; i ++)
       newdata[olddata_size+i]=data_block[i];
     reply = s->set(key, newdata, olddata_size+blocksize, flags, exptime, true);
+    break;
   }
   case 2 : { //cas
     int uid = s->getUid(key);
@@ -43,6 +47,7 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
 	reply=STORED;
       } else reply=NOT_FOUND;
     }
+    break;
   }
   case 9 : { //prepend
     int blocksize = this->blocksize;
@@ -54,10 +59,12 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
     for (int i = 0 ; i < olddata_size ; i++)
       newdata[blocksize+i]=olddata[i]; 
     reply = s->set(key, newdata, olddata_size+blocksize, flags, exptime, true);
+    break;
   }
   case 11 : { //replace
     reply = s->getDataSize(key);
     if (reply) reply = s->set(key, data_block, this->blocksize, flags, exptime, true);
+    break;
   }
   default : {
     cout << "Woah, What happened Here?" << endl;
@@ -66,9 +73,7 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
   }
   Packet * p = new Packet();
   p->transmission_handler = [=] (simplesocket * sock) {
-    char * reply_str;
-    sprintf(reply_str, "%s\r\n", replies[reply]);
-    sock->write(reply_str, strlen(reply_str));
+    sock->write(replies[reply], strlen(replies[reply]));
   };
   return p;
 }
@@ -76,32 +81,31 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
 Packet * Cmd::exec_retrieval_cmd(Stash * s){
   Packet * p = new Packet();
   p->transmission_handler = [=] (simplesocket * sock) {
-    for (int i = 0 ; i < this->args.size() ; i++ ) { 
+    for (int i = 0 ; i < this->args.size() ; i++ ) {       
       int reply = -1;
-      const char * key = this->args[i].c_str();
-      int blocksize = s->getDataSize(key);
-      int flags = s->getFlags(key);
-      int casunique = s->getUid(key);
+      const char * key = this->args[i].c_str(); show(key);
+      Bucket * b = s->getBucket(key);
+      if (strcmp(key, b->getKey())) continue;
+      int blocksize = b->data_size;
       char data[blocksize];
       try {
-	memcpy(data, s->get(key), blocksize);
-	data[blocksize-2]='\r'; data[blocksize-2]='\n';
+	memcpy(data, b->getData(), blocksize);
+	show(data);
       } catch (int e) {
 	reply = e;
       }    
-      char * reply_str ="";
-      if (NOT_FOUND!=reply){
-	if (this->cmd==7) {
-	  reply_str = "VALUE %s %i %i %i\r\n";
-	  sprintf(reply_str, key, flags, blocksize, casunique);
-	} else {
-	  reply_str = "VALUE %s %i %i\r\n";
-	  sprintf(reply_str, key, flags, blocksize);
-	}
+      char reply_str[512]; show(reply); show(NOT_FOUND);
+      if (NOT_FOUND!=reply){ show(this->cmd);
+	if (this->cmd==7) 
+	  sprintf(reply_str, "VALUE %s %i %i %i\r\n", b->getKey(), b->getFlags(), blocksize, b->bucket_uid);
+	else
+	  sprintf(reply_str, "VALUE %s %i %i\r\n", b->getKey(), b->getFlags(), blocksize);
       }
-      int reply_len = strlen(reply_str);
+      show(reply_str);
+      int reply_len = strlen(reply_str); 
       sock->write(reply_str, reply_len);
       sock->write(data, blocksize);
+      sock->write("\r\n", 2);
     }
     sock->write(replies[END], strlen(replies[END]));
   };
@@ -170,7 +174,7 @@ Packet * Cmd::exec_verbosity(Stash * s){
 }
 
 Packet * Cmd::exec_cmd(char * buffer, Stash * s){
-  // this should be moved
+  show(Cmd::parse_types[this->cmd]);
   switch (Cmd::parse_types[this->cmd]) {
   case 1 : return this->exec_storage_cmd(buffer, s);
   case 2 : return this->exec_retrieval_cmd(s);

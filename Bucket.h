@@ -43,7 +43,7 @@ public:
     return strcpy(retval, this->data);
   }
 
-  uint16_t getFlags(const char * key);
+  uint16_t getFlags();
 
   static bool test();
   int bucket_uid = 0;

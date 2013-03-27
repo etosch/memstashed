@@ -28,6 +28,7 @@ class Stash {
   int del(const char * key);
   int replaceExptime(const char * key, int exptime);
   int current_items_stored();
+  Bucket * getBucket(const char * key);
   
  private:
   static int total_items_stored;
@@ -38,7 +39,6 @@ class Stash {
   static Bucket *stash[DEFAULT_SIZE];
   static uint64_t uid;
   static uint64_t newUid();
-  Bucket * getBucket(const char * key);
 };
 
 #endif

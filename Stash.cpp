@@ -36,7 +36,7 @@ int Stash::init() {
 uint16_t Stash::getFlags(const char * key) {
   if (this->keyExists(key)){
     Bucket * b = this->getBucket(key);
-    return b->getFlags(key);
+    return b->getFlags();
   } else throw NOT_FOUND;
 }
 

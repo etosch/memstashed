@@ -14,27 +14,23 @@ int Bucket::bucket_unlock(){
 
 bool Bucket::setVals(const char * newkey, char * newdata, int data_size
 		     , uint16_t flags, int exptime, int uid) {
-  this->bucket_lock();
-  assert(strlen(newkey)<=KEY_SIZE);
-  if (strlen(newdata)>(VAL_SIZE)) {
-    return false;
-  } else {
+  bool retval = false;
+  this->bucket_lock(); std::cout<<"lock bucket"<<std::endl;
+  if (strlen(newdata)<=(VAL_SIZE)){
     strcpy(this->key, newkey);
     strcpy(this->data, newdata);
     this->flags = flags;
     this->exptime = exptime;
     this->data_size = data_size;
     this->bucket_uid = uid;
-    // maybe I should check that these are properly copied before returning?
-    return true;
+    retval=true;
   }
-  this->bucket_unlock();
+  this->bucket_unlock(); std::cout<<"unlock bucket"<<std::endl;
+  return retval;
 }
 
-uint16_t Bucket::getFlags(const char * key){
-  if (strcmp(key, this->key)==0)
-    return this->flags;
-  else throw NOT_FOUND;
+uint16_t Bucket::getFlags(){
+  return this->flags;
 }
 
 bool Bucket::replaceExptime(const char * key, int exptime){
