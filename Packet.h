@@ -8,7 +8,7 @@ class Packet{
  public:
   Packet(){};
   ~Packet(){};
-  std::function<void (simplesocket *)> transmission_handler; 
+  std::function<int (simplesocket *)> transmission_handler; 
 };
 
 #endif

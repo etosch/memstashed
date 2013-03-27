@@ -9,5 +9,6 @@ const char * replies[] = {
    , "DELETED\r\n" //5
    , "END\r\n" //6
    , "TOUCHED\r\n" //7
+   , "EXIT\r\n" //8
 };
 

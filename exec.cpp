@@ -78,6 +78,7 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
   Packet * p = new Packet();
   p->transmission_handler = [=] (simplesocket * sock) {
     sock->write(replies[reply], strlen(replies[reply]));
+    return 0;
   };
   return p;
 }
@@ -112,6 +113,7 @@ Packet * Cmd::exec_retrieval_cmd(Stash * s){
       sock->write("\r\n", 2);
     }
     sock->write(replies[END], strlen(replies[END]));
+    return 0;
   };
   return p;
 }
@@ -123,6 +125,7 @@ Packet * Cmd::exec_deletion_cmd(Stash * s){
     const char * key = this->args[0].c_str();
     int reply = s->del(key);
     if (not noreply) sock->write(replies[reply], strlen(replies[reply]));
+    return 0;
   };
   return p;
 }
@@ -142,6 +145,7 @@ Packet * Cmd::exec_touch_cmd(Stash * s){
     int noreply = this->args.back()=="noreply";
     if (not noreply)
       sock->write(replies[reply], strlen(replies[reply]));
+    return 0;
   };
   return p;
 }
@@ -158,18 +162,39 @@ Packet * Cmd::exec_stats_cmd(Stash * s){
     // char * out_str = "STAT %s %s\r\n";
     // sprintf(out_str, "pid", get_process_id());
     // sock->write(s, strlen(out_str));
+    return 0;
   };
   return p;
 }
 
 Packet * Cmd::exec_flush_cmd(Stash * s){
   Packet * p = new Packet();
+  p->transmission_handler = [=] (simplesocket * sock) {
+    sock->write("Not implemented\r\n", 17);
+    return 0;
+  };
   return p;
 }
 
 Packet * Cmd::exec_singleton(Stash * s){
-  Packet * p = new Packet();
-  return p;
+  Packet * p = new Packet(); show(this->cmd);
+  switch (this->cmd) { 
+  case 17 : {
+    p->transmission_handler = [=] (simplesocket * sock) {      
+      sock->write("VERSION 1.never\r\n", 17);
+      return 0;
+    };
+    return p;
+  }
+  case 10 : {
+    p->transmission_handler = [=] (simplesocket * sock) {
+      sock->write("GOODBYE\r\n", 9);
+      return EXIT;
+    };
+    return p;
+  }
+  default : return p;
+  }
 }
 
 Packet * Cmd::exec_verbosity(Stash * s){

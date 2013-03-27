@@ -9,4 +9,5 @@ const int NOT_FOUND = 4;
 const int DELETED = 5;
 const int END = 6;
 const int TOUCHED = 7;
+const int EXIT = 8;
 #endif

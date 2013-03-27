@@ -4,6 +4,7 @@
 #include "Parser.h"
 #include "Cmd.h"
 #include "errors.h"
+#include "replies.h"
 #include "simplesocket.h"
 #include <pthread.h>
 #include <sstream>
@@ -14,6 +15,7 @@ using namespace std;
 static bool debug_mode;
 static Stash * stash = new Stash();
 static int num_threads = 0;
+static int total_threads = 0;
 
 // from emery's code
 int Server::messageNumber () {
@@ -37,10 +39,10 @@ void * Server::serve (void * cv){
   // most messages are short
   int cmd_bufsize = 512;
   char cmd_buffer[cmd_bufsize];
-  int nbytesRead;
+  int nbytesRead; int outcome;
   if (debug_mode) client->write("memstashed>", 11);
-  while ((nbytesRead = client->read (cmd_buffer,cmd_bufsize))) {
-    Cmd * c;
+  while ((nbytesRead = client->read (cmd_buffer,cmd_bufsize)) && outcome!=EXIT) {
+    Cmd * c = new Cmd(-1);
     char err[250];
     for (int i = nbytesRead ; i < cmd_bufsize ; i++)
       cmd_buffer[i]='\0';
@@ -48,6 +50,7 @@ void * Server::serve (void * cv){
     if (strcmp(cmd_buffer, "\r\n")){
       try{
 	c = Parser::parse_cmd(cmd_bufsize, cmd_buffer);
+	if (not c) bad_cmd_err();
 	Parser::parse(c, cmd_bufsize, cmd_buffer);
 	show(Cmd::parse_types[c->cmd]);
 	if (Cmd::parse_types[c->cmd]==1){
@@ -56,10 +59,10 @@ void * Server::serve (void * cv){
 	  memset(data_buffer, '\0', data_bufsize);
 	  client->read(data_buffer, data_bufsize); show(data_buffer);
 	  Packet * p = c->exec_cmd(data_buffer, stash);
-	  p->transmission_handler(client);
+	  outcome = p->transmission_handler(client);
 	} else {	  
 	  Packet * p = c->exec_cmd(cmd_buffer, stash);
-	  p->transmission_handler(client);
+	  outcome = p->transmission_handler(client);
 	}
       } catch (int e) {
 	sprintf(err, errors[e], Cmd::cmds[c->cmd]); 
@@ -69,7 +72,7 @@ void * Server::serve (void * cv){
 	cout << c->cmd << Cmd::cmds[c->cmd] << endl;
       }
     }
-    if (debug_mode) client->write("memstashed>", 11);
+    if (outcome!=EXIT && debug_mode) client->write("memstashed>", 11);
   }
   delete client;
   return NULL;
@@ -89,8 +92,12 @@ int Server::run (bool debug, char delim, char * ip_addr, char * protocol,
     // Create one thread per connection.
     auto * c = s->accept();
     pthread_t * t = new pthread_t;
-    pthread_create (t, NULL, serve, (void *) c);
-    num_threads++;
+    int r = pthread_create (t, NULL, serve, (void *) c);
+    num_threads++; total_threads++;
+    if (r) {
+      pthread_join(*t, NULL);
+      num_threads--;
+    }
   }
   // We will never get here...
   s->close();
