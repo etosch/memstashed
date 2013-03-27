@@ -19,7 +19,7 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
   uint64_t casunique; 
   bool noreply = this->args.back()=="noreply";
   if (this->cmd == 2) casunique = atol(this->args[4].c_str());
-  int reply;
+  int reply; show(this->cmd);
   switch (this->cmd){
   case 0 : { //add
     reply = s->set(key, data_block, this->blocksize, flags, exptime, false);
@@ -64,6 +64,10 @@ Packet * Cmd::exec_storage_cmd(char * data_block, Stash * s){
   case 11 : { //replace
     reply = s->getDataSize(key);
     if (reply) reply = s->set(key, data_block, this->blocksize, flags, exptime, true);
+    break;
+  }
+  case 12 : { //set
+    reply = s->set(key, data_block, this->blocksize, flags, exptime, true);
     break;
   }
   default : {
